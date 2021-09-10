@@ -7,39 +7,37 @@ from random import randint
 ## Tree representation
     Any node of the tree will be a funcion. Both yes and no branches will be 
     represented as tuple element, with index element 0 for no, and index 
-    element 1 for yes. So, any depth of the tree will be a dict, with 
-    functions as keys and tuples as items.
+    element 1 for yes. Every node is a key of the dict, and every branch
+    could be a final answer o the name of the next node.
 
     So, as an example, consider the next tree:
-                function
+                ___node___
                  /      \
                 /        \
                /          \
-            fuction_0    function_1
+            ___node___0    ___node___1
               /    \          /    \
              /      \	     /      \
             /        \      /        \
-            YES       NO    NO     function_11
+            YES       NO    NO     ___node___11
                                      /    \
                                     /      \
                                    /        \
                                   NO        YES
-    tree = {    
-        'f_0': ({
-            'f_00': (         # No depth 1
-                1,                    # No depth 2
-                0                     # Yes depth 2    
-            )}, # Depth 2
-            {'f_01': (        # Yes depth 1
-                0,                    # No depth 2
-                {'f_011': (    # Yes depth 2
-                    0,                # No depth 3
-                    1                 # Yes depth 3
-                    )}
-                ) # Depth 3 
-            } # Depth 2
-        ) # Depth 1
-    } 
+    tree = {
+        n_: (f_0, f_1),
+        n_0: (1, 0),
+        n_1: (0, f_11),
+        n_11: (0, 1)
+    }
+    Every node will have an associated function, that will be the index of the
+    feature that splits that node.
+    functions = {
+        n_: f1,
+        n_0: f3,
+        n_1: f4,
+        n_11: fn
+    }
 
     A node will be represented as dict, with the question as a function name (str)
     and the decisions as a tuple element. That way, the leaves will be booleans (0 / 1)
@@ -48,8 +46,10 @@ from random import randint
 class Tree(dict):
     def __init__(self, max_depth=3):
         self.max_depth = max_depth
-        self.tree = dict()
+        self.tree = {'n_': [None, None]}
+        self.solved_tree = {'n_': [None, None]}
         self.node_functions = dict()
+        self.coords = []
 
     def _node(self, decision_vector=[1]):
         '''
@@ -58,7 +58,7 @@ class Tree(dict):
             decision_vector: tuple or list
         '''
 
-        node_function = 'f_' # String that identifies the function for that node
+        node_function = 'n_' # String that identifies the function for that node
         tmp_obj = self.tree[node_function] # Temporal object to save the tree below that node
         
         for depth, coord in enumerate(decision_vector):
@@ -103,17 +103,39 @@ class Tree(dict):
         yes_no_acc = (len(y_yes) - sum(y_yes) + sum(y_no))/(len(y_no) + len(y_yes))
         return (yes_no_acc, yes_yes_acc)
     
-    def _solve_node(self, XX, Y):
-        IG = [self._inf_gain(X, Y) for X in XX.T]
+    def _solve_node(self, XX, Y, coords=[]):
+        IG = [self._inf_gain(X  , Y) for X in XX.T]
         best_feature = IG.index(max(IG))
+        self.node_functions['n_'+''.join(map(str, coords))] = best_feature
         X = XX.T[best_feature]
-        decs_acc = self._decs_accuracy(X, Y)
-        yes_desc = decs_acc.index(max(decs_acc))
+        Y0 = Y[X == 0]
+        Y1 = Y[X == 1]
+        H0 = self._H(Y0)
+        H1 = self._H(Y1)
+        if H0 == 0:
+            self.tree['n_'+''.join(map(str, coords))][0] = Y0[0]
+        else:
+            XX_new = XX[X==0]
+            self.tree['n_'+''.join(map(str, coords))][0] = 'n_'+''.join(map(str, coords + [0]))
+            self.node_functions[self.tree['n_'+''.join(map(str, coords))][0]] = best_feature
+            self.coords.append(0)
+            self.tree['n_'+''.join(map(str, self.coords))] = [None, None]
+            self._solve_node(XX_new, Y0, self.coords)
+        if H1 == 0:
+            self.tree['n_'+''.join(map(str, coords))][1] = Y1[0]
+        else:
+            XX_new = XX[X==1]
+            self.tree['n_'+''.join(map(str, coords))][0] = 'n_'+''.join(map(str, coords + [1]))
+            self.node_functions[self.tree['n_'+''.join(map(str, coords))][0]] = best_feature
+            coords.append(1)
+            self.tree['n_'+''.join(map(str, self.coords))] = [None, None]
+            self._solve_node(XX_new, Y1, self.coords)
+        print(self.tree, self.node_functions)
 
 
 
     def train(self, XX, Y):
-        f_key = 'f_'
+        f_key = 'n_'
         depth = 0
         IG = [self._inf_gain(X, Y) for X in XX.T]
         best_feature = IG.index(max(IG))
@@ -131,31 +153,21 @@ def DT_train_binary(XX,Y,max_depth=3):
     '''
 
 # %%
-tree = {    
-    'f_': ({
-        'f_0': (         # No depth 1
-            1,                    # No depth 2
-            0                     # Yes depth 2    
-        )}, # Depth 2
-        {'f_1': (        # Yes depth 1
-            0,                    # No depth 2
-            {'f_11': (    # Yes depth 2
-                0,                # No depth 3
-                1                 # Yes depth 3
-                )}
-            ) # Depth 3 
-        } # Depth 2
-    ) # Depth 1
-} 
 DT = Tree()
-DT.tree = tree
-Y = np.array([1, 0, 0, 0, 1, 0, 1])
+# DT.tree = tree
+Y = np.array([0, 1, 1, 0, 0, 1, 0, 0, 1, 0])
 XX = np.array([
-    [0, 1, 0, 1], [1, 0, 1, 0], [1, 1, 0, 0], [0, 1, 1, 0],
-    [1, 0, 0, 1], [0, 0, 1, 1], [0, 1, 0, 1]
+    [1, 1, 0, 0], 
+    [1, 1, 1, 1],
+    [1, 1, 1, 1],
+    [0, 0, 0, 1],
+    [0, 0, 1 ,1],
+    [0, 0, 1, 0],
+    [0, 0, 0, 0],
+    [1, 0, 1, 0],
+    [1, 1, 1, 0],
+    [0, 0, 1, 1]
 ])
 # %%
-DT.train(XX, Y)
-# %%
-DT._decs_accuracy(XX.T[2], Y)
+DT._solve_node(XX, Y)
 # %%
