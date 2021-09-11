@@ -46,31 +46,9 @@ from random import randint
 class Tree(dict):
     def __init__(self, max_depth=3):
         self.max_depth = max_depth
-        self.tree = {'n_': [None, None]}
-        self.solved_tree = {'n_': [None, None]}
-        self.node_functions = dict()
-        self.coords = []
-
-    def _node(self, decision_vector=[1]):
-        '''
-        It retrieves the node / leaf given a decision vector. For the example
-        tree, the decision vector (0, 0) would return YES, and (1, 1, 0) would return NO.
-            decision_vector: tuple or list
-        '''
-
-        node_function = 'n_' # String that identifies the function for that node
-        tmp_obj = self.tree[node_function] # Temporal object to save the tree below that node
-        
-        for depth, coord in enumerate(decision_vector):
-            if isinstance(tmp_obj, dict):  # If there's a question to make
-                tmp_obj = tmp_obj[node_function] # Drop the question and get choises
-                tmp_obj = tmp_obj[coord] # Make a choise
-            elif isinstance(tmp_obj, tuple): # If there is no question to evaluate
-                tmp_obj = tmp_obj[coord] # Make a choise
-            else:
-                break # Final choise is ready
-            node_function += str(coord) # Next node function
-        return tmp_obj
+        self.tree = {'n_': [None, None]} # Initialize tree
+        self.node_functions = dict() # Dict to save features that split every node
+        self.coords = [] # A list to navigate through the tree when solving all nodes
     
     def _H(self, Y):
         '''Compute the information entropy for a list of labels'''
@@ -103,45 +81,49 @@ class Tree(dict):
         yes_no_acc = (len(y_yes) - sum(y_yes) + sum(y_no))/(len(y_no) + len(y_yes))
         return (yes_no_acc, yes_yes_acc)
     
+    
     def _solve_node(self, XX, Y, coords=[]):
-        IG = [self._inf_gain(X  , Y) for X in XX.T]
-        best_feature = IG.index(max(IG))
-        self.node_functions['n_'+''.join(map(str, coords))] = best_feature
-        X = XX.T[best_feature]
-        Y0 = Y[X == 0]
-        Y1 = Y[X == 1]
-        H0 = self._H(Y0)
-        H1 = self._H(Y1)
-        if H0 == 0:
-            self.tree['n_'+''.join(map(str, coords))][0] = Y0[0]
-        else:
-            XX_new = XX[X==0]
-            self.tree['n_'+''.join(map(str, coords))][0] = 'n_'+''.join(map(str, coords + [0]))
-            self.node_functions[self.tree['n_'+''.join(map(str, coords))][0]] = best_feature
-            self.coords.append(0)
-            self.tree['n_'+''.join(map(str, self.coords))] = [None, None]
-            self._solve_node(XX_new, Y0, self.coords)
-        if H1 == 0:
-            self.tree['n_'+''.join(map(str, coords))][1] = Y1[0]
-        else:
-            XX_new = XX[X==1]
-            self.tree['n_'+''.join(map(str, coords))][0] = 'n_'+''.join(map(str, coords + [1]))
-            self.node_functions[self.tree['n_'+''.join(map(str, coords))][0]] = best_feature
-            coords.append(1)
-            self.tree['n_'+''.join(map(str, self.coords))] = [None, None]
-            self._solve_node(XX_new, Y1, self.coords)
-        print(self.tree, self.node_functions)
+        actual_coords = coords[:] # It seems that coords is mutating trhough the recursive calls, so I have to do this
+        
+         
+        for leaf in self.tree['n_'+''.join(map(str, actual_coords))]: 
+            if (leaf is None) or (leaf not in (1, 0)) or isinstance(leaf, str): 
+                IG = [self._inf_gain(X  , Y) for X in XX.T] 
+                best_feature = IG.index(max(IG)) 
+                self.node_functions['n_'+''.join(map(str, actual_coords))] = best_feature 
+                X = XX.T[best_feature]
+                Y0 = Y[X == 0]
+                Y1 = Y[X == 1]
+                H0 = self._H(Y0)
+                H1 = self._H(Y1)
+                
 
+                # Solve NO
+                if H0 == 0:
+                    self.tree['n_'+''.join(map(str, actual_coords))][0] = Y0[0]
+                else:
+                    XX_new = XX[X==0]
+                    self.tree['n_'+''.join(map(str, actual_coords))][0] = 'n_'+''.join(map(str, actual_coords + [0]))
+                    self.coords.append(0)
+                    self.tree['n_'+''.join(map(str, self.coords))] = [None, None]
+                    self._solve_node(XX_new, Y0, self.coords)
+                # Solve YES
+                if H1 == 0:
+                    self.tree['n_'+''.join(map(str, actual_coords))][1] = Y1[0]
+                else:
+                    XX_new = XX[X==1]
+                    self.tree['n_'+''.join(map(str, actual_coords))][1] = 'n_'+''.join(map(str, actual_coords + [1]))
+                    self.coords.append(1)
+                    self.tree['n_'+''.join(map(str, self.coords))] = [None, None]
+                    self._solve_node(XX_new, Y1, self.coords)
+            else:
+                self.coords = []
+        
 
 
     def train(self, XX, Y):
-        f_key = 'n_'
-        depth = 0
-        IG = [self._inf_gain(X, Y) for X in XX.T]
-        best_feature = IG.index(max(IG))
-
-        self.node_functions
-        return (IG, best_feature)
+        self._solve_node(XX, Y)
+        return(self.tree, self.node_functions)
             
 
 
@@ -170,4 +152,6 @@ XX = np.array([
 ])
 # %%
 DT._solve_node(XX, Y)
+print(DT.tree)
+print(DT.node_functions)
 # %%
