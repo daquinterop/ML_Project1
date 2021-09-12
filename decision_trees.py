@@ -1,46 +1,6 @@
 import numpy as np
 import math
 from random import randint
-# from test_script import load_data
-'''
-## Tree representation
-    Any node of the tree will be a funcion. Both yes and no branches will be 
-    represented as tuple element, with index element 0 for no, and index 
-    element 1 for yes. Every node is a key of the dict, and every branch
-    could be a final answer o the name of the next node.
-
-    So, as an example, consider the next tree:
-                ___node___
-                 /      \
-                /        \
-               /          \
-            ___node___0    ___node___1
-              /    \          /    \
-             /      \	     /      \
-            /        \      /        \
-            YES       NO    NO     ___node___11
-                                     /    \
-                                    /      \
-                                   /        \
-                                  NO        YES
-    tree = {
-        n_: (f_0, f_1),
-        n_0: (1, 0),
-        n_1: (0, f_11),
-        n_11: (0, 1)
-    }
-    Every node will have an associated function, that will be the index of the
-    feature that splits that node.
-    functions = {
-        n_: f1,
-        n_0: f3,
-        n_1: f4,
-        n_11: fn
-    }
-
-    A node will be represented as dict, with the question as a function name (str)
-    and the decisions as a tuple element. That way, the leaves will be booleans (0 / 1)
-'''
 
 class Tree:
     def __init__(self, max_depth=3):
@@ -172,7 +132,7 @@ def DT_make_prediction(x, DT):
         if out in (1, 0):
             return(out)
         else:
-            if not_binary: # If not binary
+            if not_binary:
                 feature, threshold = node_func[node]
                 out = tree_structure[node][int(x[int(feature)] > threshold)]
                 node = out
