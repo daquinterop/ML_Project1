@@ -8,7 +8,7 @@ def KNN_test(X_train, Y_train, X_test, Y_test, K):
     distance_matrix = spatial.distance_matrix(X_train, X_test)
     KNN_indexes = np.argsort(distance_matrix)[:,:K]
     KNN_values = np.array([Y_train[indexes] for indexes in KNN_indexes])
-    Y_predicted = np.apply_along_axis(sum, axis=1, arr=KNN_values)
+    Y_predicted = np.apply_along_axis(lambda x: np.sign(sum(x)), axis=1, arr=KNN_values)
     hits = np.array([Y_real == Y_pred for Y_real, Y_pred in zip(Y_test, Y_predicted)])
     return np.mean(hits)
 

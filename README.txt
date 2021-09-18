@@ -2,10 +2,15 @@
     
     ## DT_train_binary(X,Y,max_depth)
     ...........................................................................
-    Any node of the tree will be a function. Both yes and no branches will be 
-    represented as tuple element, with index element 0 for no, and index 
-    element 1 for yes. Every node is a key of the dict, and every branch
-    could be a final answer o the name of the next node.
+    Any node of the tree will be a string. Both yes and no branches will be 
+    represented as tuple element, with index element 0 for NO, and index 
+    element 1 for YES. Every node string will start with 'n_' followed by 
+    the decision that lead to that node. That way, 'n_' will the initial node,
+    'n_0' will be the node for the NO branch of the 'n_' node, 'n_01' will be 
+    the node for the YES branch of the 'n_0' node and so on. It will be a node
+    function object that will associate every node with the feature index that
+    split that node. The number of characters following 'n_' is equal to the 
+    depth of that node.
 
     So, as an example, consider the next tree:
                  ___node___
@@ -23,24 +28,20 @@
                              NO        YES
     The tree structure will be represented as follow:
     tree = {
-        n_: (f_0, f_1),
-        n_0: (1, 0),
-        n_1: (0, f_11),
-        n_11: (0, 1)
+        'n_': (n_0,n_1),
+        'n_0': (1, 0),
+        'n_1': (0, n_11),
+        'n_11': (0, 1)
     }
-    Every node will have an associated function, that will be the index of the
-    feature that splits that node in the case of binary features.
+    In the function object for the nodes, every node will have associated to itself the index 
+    of the feature that splits that node. For instance, for the next example, the 'n_1' is 
+    split by the feature with index 2, i.e. the third feature.
     functions = {
-        n_: f1,
-        n_0: f3,
-        n_1: f4,
-        n_11: fn
+        'n_': 1,
+        'n_0': 3,
+        'n_1': 2,
+        'n_11': 0
     }
-
-    A node will be represented as dict, with the question/split feature as a function name (str)
-    and the decisions as a tuple element. That way, the leaves will be booleans (0 / 1)
-    So, the tree object will be a tuple containing the tree structure and the node function,
-    which is the feature index for binary labels.
 
     To implement that, I created a Tree class, with different methods that are called 
     during the training. Those methods are regarding to entropy calculation, information
@@ -60,14 +61,12 @@
         solve that new node by calling itself in a recursive process. After the branch is solved
         it moves to the next, if the former branch is the last, it moves to the next unsolved 
         node. After moving to next step, it checks if there will be any IG, if there won't be
-        IG, then solve the branch in function of next or former branch out or most accurate out.
+        IG, then it solves the branch based on accuracy taking into account the next or former 
+        branch.
 
     The former process will repeat until all nodes are solved. There is a class attribute (self.coords)
     to keep track of the actual position in the tree, that attribute will reset every time a new unsolved
     nodes search is necesary.
-    
-    The function to implement uses the train method over the Tree instance that was previously
-    defined.
 
     ## DT_make_prediction(x, DT)
     ...........................................................................
@@ -113,10 +112,10 @@
     ## KNN_test(X_train,Y_train,X_test,Y_test,K)
     ...........................................................................
     I simply used some numpy and scipy.spatial functions so follow the steps of a KNN:
-        - Distance matrix is calculated, that is the distances from every X_test to every X_train.
+        - Distance matrix is calculated, that is the distances from every X_test to every X_train. 
         - Get the index of KNN
-        - Get the KNN values
-        - Get the predicted value by adding the KNN values for every sample
+        - Get the KNN values 
+        - Get the predicted value by getting the sign of the addition of the KNN values for every sample
         - Build a hits vector, the mean of this vector is the accuracy
 
     ## choose_K(X_train,Y_train,X_val,Y_val)
@@ -126,3 +125,19 @@
         - Evaluate the accuracy for every K
         - Find the K with the higher accuracy.
         - If there is more than one best K, it will select the greater one.
+
+# K-Means Clustering
+
+    ## K_Means(X,K,mu)
+    ...........................................................................
+    The function performs the next steps:
+    - Verify K is greater than 0, and that both X and mu are numpy arrays
+    - If mu is empty, then it intializes mu as a K size slice of randomly shuffled X. 
+    - Initializes the mu_prev variable to keep track of the previous mu
+    - Do the next while mu_prev is different from mu
+            + Initializes the clusters as a K, Nsamples, Nfeatures shape empty array
+            + Calculate the distance matrix between the samples and the mus
+            + Assign every sample to the closest cluster/mu
+            + Redefine the previous mu as the actual one
+            + Redefine actual mu as the mean of every cluster using nanmean
+    - Return mu vector
