@@ -5,14 +5,14 @@
     Any node of the tree will be a string. Both yes and no branches will be 
     represented as tuple element, with index element 0 for NO, and index 
     element 1 for YES. Every node string will start with 'n_' followed by 
-    the decision that lead to that node. That way, 'n_' will the initial node,
+    the decision that led to that node. That way, 'n_' will be the initial node,
     'n_0' will be the node for the NO branch of the 'n_' node, 'n_01' will be 
-    the node for the YES branch of the 'n_0' node and so on. It will be a node
+    the node for the YES branch of the 'n_0' node and so on. There will be a node
     function object that will associate every node with the feature index that
-    split that node. The number of characters following 'n_' is equal to the 
+    splits that node. The number of characters following 'n_' is equal to the 
     depth of that node.
 
-    So, as an example, consider the next tree:
+    So, as an example, consider the following tree:
                  ___node___
                   /      \
                  /        \
@@ -26,16 +26,16 @@
                                /      \
                               /        \
                              NO        YES
-    The tree structure will be represented as follow:
+    The tree structure will be represented as follows:
     tree = {
         'n_': (n_0,n_1),
         'n_0': (1, 0),
         'n_1': (0, n_11),
         'n_11': (0, 1)
     }
-    In the function object for the nodes, every node will have associated to itself the index 
-    of the feature that splits that node. For instance, for the next example, the 'n_1' is 
-    split by the feature with index 2, i.e. the third feature.
+    In the function object for the nodes, each node will have associated an index to itself. 
+    That index is the index of the feature that splits that node. For instance, for the next 
+    example, the 'n_1' is split by the feature with index 2, i.e. the third feature.
     functions = {
         'n_': 1,
         'n_0': 3,
